@@ -12,7 +12,14 @@
 #include "sha1.h"
 #include "grader.h"
 
-struct cicSignature cics[] = {
+
+struct {
+	int type;
+	char *name;
+	uint32_t seed;
+	uint8_t signature[20];
+	int end;
+} cics[] = {
 	{
 		.type = 1,
 		.name = "unrecognized",
@@ -21,6 +28,7 @@ struct cicSignature cics[] = {
 	{
 		.type = 6101,
 		.name = "6101",
+		.seed = 0x3f,
 		.signature = {0xea, 0xad, 0xcb, 0x8c, 0xca, 0x9c, 0x6b, 0xa1,
 			      0x44, 0x5f, 0x98, 0xf1, 0x72, 0x7b, 0xf4, 0xad,
 			      0xba, 0xbb, 0x88, 0xb2},
@@ -28,6 +36,7 @@ struct cicSignature cics[] = {
 	{
 		.type = 6102,		// and 7101
 		.name = "6102 or 7101",
+		.seed = 0x3f,
 		.signature = {0xb2, 0xaf, 0xae, 0x24, 0x6e, 0x1d, 0xab, 0x74,
 			      0x6b, 0xfb, 0x28, 0xcb, 0x34, 0x6e, 0x29, 0x11,
 			      0x96, 0x5e, 0xef, 0xa1},
@@ -35,6 +44,7 @@ struct cicSignature cics[] = {
 	{
 		.type = 6103,		// and 7103
 		.name = "6013 or 7103",
+		.seed = 0x78,
 		.signature = {0x3f, 0x73, 0x47, 0xaa, 0x04, 0x26, 0xee, 0x97,
 			      0xd9, 0x67, 0x21, 0xb0, 0x9b, 0x91, 0x8d, 0x4c,
 			      0x9c, 0xdd, 0xb6, 0x9b},
@@ -42,6 +52,7 @@ struct cicSignature cics[] = {
 	{
 		.type = 6105,		// and 7105
 		.name = "6105 or 7105",
+		.seed = 0x91,
 		.signature = {0x41, 0x59, 0x26, 0x90, 0x55, 0xe8, 0xa5, 0xbe,
 			      0x2e, 0x5c, 0x8e, 0x3e, 0x0f, 0x5e, 0x0d, 0x55,
 			      0x2f, 0x1e, 0x85, 0xad},
@@ -49,6 +60,7 @@ struct cicSignature cics[] = {
 	{
 		.type = 6106,		// and 7106
 		.name = "6106 or 7106",
+		.seed = 0x85,
 		.signature = {0x63, 0x46, 0x8e, 0x3a, 0xb5, 0x54, 0x25, 0x3d,
 			      0xa3, 0x4d, 0xe3, 0x59, 0x5c, 0xd0, 0x9b, 0x0e,
 			      0xce, 0xa1, 0xce, 0x00},
@@ -56,6 +68,7 @@ struct cicSignature cics[] = {
 	{
 		.type = 7102,		// TODO: double-check this
 		.name = "7102",
+		.seed = 0x3f,
 		.signature = {0x79, 0xfe, 0x35, 0x1c, 0x50, 0xcd, 0xf7, 0x7c,
 			      0x74, 0xe5, 0x03, 0xd7, 0x51, 0xa7, 0x15, 0x60,
 			      0x5f, 0x87, 0xb8, 0x09},
@@ -63,6 +76,7 @@ struct cicSignature cics[] = {
 	{
 		.type = 8303,
 		.name = "8303",
+		.seed = 0xdd,
 		.signature = {0x5e, 0xa7, 0xfc, 0x32, 0x74, 0xbe, 0x01, 0x12,
 			      0x1c, 0xfb, 0x20, 0xad, 0x6c, 0x9e, 0x60, 0x85,
 			      0xd6, 0x32, 0x79, 0xbe},
@@ -329,6 +343,73 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 	rg->crc2 = be32toh(((uint32_t *) rom)[5]);
 	if (rg->ipl3Grade == GRADE_OK) {
 	switch (cics[rg->ipl3].type) {
+	case 6102:
+	{
+		uint32_t *rom32 = (uint32_t *)rom;
+		uint32_t at,s6,v1,t0,v0,a3,t2,t3,s0,a2,t4,t7,t5,t8,t6,a0,a1,t9;
+		uint32_t ra, t1;
+		s6 = cics[rg->ipl3].seed;
+		a0 = /* start of 1mb seg */ 0x1000;
+		a1 = s6;
+		at = 0x5d588b65;
+		ra = 0x100000;
+		v1 = 0;
+		t0 = 0;
+		t1 = a0;
+		t5 = 0x20;
+		v0 = at * a1;
+		v0 = v0 + 1;
+		a3 = v0;
+		t2 = v0;
+		t3 = v0;
+		s0 = v0;
+		a2 = v0;
+		t4 = v0;
+
+		// 80000130
+		do {
+			v0 = be32toh(rom32[t1/4]);
+			v1 = a3 + v0;
+			a1 = v1;
+			if(v1<a3) {
+				t2 = t2 + 1;
+			}
+
+			// 80000148
+			v1 = v0 & 0x1f;
+			t7 = t5 - v1;
+			t8 = v0 >> t7;
+			t6 = v0 << v1;
+			a0 = t6 | t8;
+			a3 = a1;
+			t3 ^= v0;
+			s0 += a0;
+			if(a2<v0) {
+				t9 = a3 ^ v0;
+				a2 = t9 ^ a2;
+			} else {
+				a2 ^= a0;
+			}
+			
+			// 80000180
+			t0 += 4;
+			t7 = v0 ^ s0;
+			t1 += 4;
+			t4 = t7 + t4;
+		} while(t0 != ra);
+		
+		t6 = a3 ^ t2;
+		a3 = t6 ^ t3;
+		t8 = s0 ^ a2;
+		s0 = t8 ^ t4;
+
+		// crcs now in a3 and s0
+		if( (rg->crc1 == a3) && (rg->crc2 == s0) )
+			rg->crcGrade = GRADE_OK;
+		else
+			rg->crcGrade = GRADE_ERROR;
+	}
+		break;
 	case 8303:
 		if (rg->crc1 == 0 && rg->crc2 == 0)
 			rg->crcGrade = GRADE_OK;

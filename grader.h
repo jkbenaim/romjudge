@@ -7,13 +7,6 @@
 #include <stdbool.h>
 #include "sha1.h"
 
-struct cicSignature {
-	int type;
-	char *name;
-	uint8_t signature[SHA1_DIGEST_SIZE];
-};
-
-extern struct cicSignature cics[];
 extern char *gradeErrors[];
 
 enum GRADE {
