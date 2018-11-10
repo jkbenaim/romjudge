@@ -195,7 +195,8 @@ int identify_ipl3(uint8_t * ipl3)
 	SHA1_Final(&sha1ctx, sha1sum);
 	int cicIndex = 0;
 	while (cics[cicIndex].type != 0) {
-		if (!memcmp(cics[cicIndex].signature, sha1sum, SHA1_DIGEST_SIZE)){
+		if (!memcmp(cics[cicIndex].signature, sha1sum,
+			SHA1_DIGEST_SIZE)) {
 			return cicIndex;
 			break;
 		}
@@ -210,10 +211,10 @@ void swap4(uint8_t * buf, size_t len, int order)
 	int j;
 	uint8_t tmp[4];
 	int lut[4];
-	lut[0] = order/1000 % 10 - 1;
-	lut[1] = order/100  % 10 - 1;
-	lut[2] = order/10   % 10 - 1;
-	lut[3] = order/1    % 10 - 1;
+	lut[0] = order / 1000 % 10 - 1;
+	lut[1] = order / 100  % 10 - 1;
+	lut[2] = order / 10   % 10 - 1;
+	lut[3] = order / 1    % 10 - 1;
 	for (i = 0; i < len; i += 4) {
 		for (j = 0; j < 4; j++)
 			tmp[j] = buf[i + lut[j]];
@@ -337,11 +338,12 @@ void grade_pi_timings(struct romGrade *rg, uint8_t *rom, size_t len)
 
 void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 {
-	if (rg->ipl3Grade != GRADE_OK) return;
-	
+	if (rg->ipl3Grade != GRADE_OK)
+		return;
+
 	uint32_t *rom32 = (uint32_t *)rom;
-	uint32_t v1,t0,v0,a3,t2,t3,s0,a2,t4,t7,t5,t8,t6,a0,a1,t9;
-	uint32_t ra, t1;
+	uint32_t v1, t0, v0, a3, t2, t3, s0, a2, t4, t7, t5, t8, t6, a0, a1,
+		t9, ra, t1;
 	a0 = /* start of 1mb seg */ 0x1000;
 	ra = 0x100000;
 	v1 = 0;
@@ -358,10 +360,10 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 
 	// 80000130
 	do {
-		v0 = be32toh(rom32[t1/4]);
+		v0 = be32toh(rom32[t1 / 4]);
 		v1 = a3 + v0;
 		a1 = v1;
-		if(v1<a3) {
+		if (v1 < a3) {
 			t2 = t2 + 1;
 		}
 
@@ -374,29 +376,28 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		a3 = a1;
 		t3 ^= v0;
 		s0 += a0;
-		if(a2<v0) {
+		if (a2 < v0) {
 			t9 = a3 ^ v0;
 			a2 = t9 ^ a2;
 		} else {
 			a2 ^= a0;
 		}
-		
+
 		// 80000180
-		if(cics[rg->ipl3].type == 6105)
-		{
-			uint32_t addr = 0x750 + (t0&0xff);
-			t4 += v0 ^ be32toh(rom32[addr/4]);
-		}
-		else
+		if (cics[rg->ipl3].type == 6105) {
+			uint32_t addr = 0x750 + (t0 & 0xff);
+			t4 += v0 ^ be32toh(rom32[addr / 4]);
+		} else {
 			t4 += v0 ^ s0;
-		
+		}
+
 		t0 += 4;
 		t1 += 4;
-	} while(t0 != ra);
-	
+	} while (t0 != ra);
+
 	rg->crc1_inrom = be32toh(rom32[4]);
 	rg->crc2_inrom = be32toh(rom32[5]);
-	
+
 	switch (cics[rg->ipl3].type) {
 	case 6101:
 	case 6102:
@@ -420,8 +421,8 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		break;
 	}
 
-	if( (rg->crc1_inrom == rg->crc1_calculated)
-	 && (rg->crc2_inrom == rg->crc2_calculated) )
+	if ((rg->crc1_inrom == rg->crc1_calculated)
+	 && (rg->crc2_inrom == rg->crc2_calculated))
 		rg->crcGrade = GRADE_OK;
 	else
 		rg->crcGrade = GRADE_ERROR;
