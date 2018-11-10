@@ -23,15 +23,16 @@ struct romGrade {
 	int piTimingsGrade;
 	uint32_t fileSize;
 	int fileSizeGrade;
-	uint32_t crc1;
-	uint32_t crc2;
+	uint32_t crc1_inrom;
+	uint32_t crc2_inrom;
+	uint32_t crc1_calculated;
+	uint32_t crc2_calculated;
 	int crcGrade;
 	int ipl3;		// CIC number, or 0 for unknown, or 2 for HW1 ipl3
 	int ipl3Grade;
 };
 
-extern void grade(struct romGrade *rg, uint8_t * rom, size_t len,
-		 bool swapWholeRom);
+extern void grade(struct romGrade *rg, uint8_t * rom, size_t len);
 extern void vis(struct romGrade *rg);
 
 #endif				// _GRADER_H_

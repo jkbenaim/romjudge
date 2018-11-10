@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 					MAP_PRIVATE, f, 0);
 
 	struct romGrade *rg = calloc(1, sizeof(struct romGrade));
-	grade(rg, rom, sb.st_size, false);
+	grade(rg, rom, sb.st_size);
 	vis(rg);
 	free(rg);
 	munmap(rom, sb.st_size);
