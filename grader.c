@@ -18,7 +18,6 @@ struct {
 	char *name;
 	uint32_t seed;
 	uint8_t signature[20];
-	int end;
 } cics[] = {
 	{
 		.type = 1,
