@@ -230,6 +230,8 @@ void vis(struct romGrade *rg)
 		[GRADE_ERROR]		= "[\e[31mFAIL\e[0m]",
 		[GRADE_NOT_GRADED]	= "[\e[35m NA \e[0m]",
 	};
+	printf("Product code:\t\t%s\n",
+			rg->productCode);
 	printf("Byte order grade:\t%s %d\n", g[rg->byteOrderGrade],
 			rg->byteOrder);
 	printf("PI timings grade:\t%s %08x\n", g[rg->piTimingsGrade],
@@ -429,6 +431,10 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 
 void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 {
+	memcpy(rg->productCode, rom + 0x3b, 4);
+	rg->productCode[4] = rom[0x3f] + '0';
+	rg->productCode[5] = '\0';
+
 	grade_size(rg, rom, len);
 	if (rg->fileSizeGrade == GRADE_ERROR)
 		return;

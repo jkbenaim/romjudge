@@ -17,6 +17,7 @@ enum GRADE {
 };
 
 struct romGrade {
+	char productCode[6];
 	int byteOrder;
 	int byteOrderGrade;
 	uint32_t piTimings;
