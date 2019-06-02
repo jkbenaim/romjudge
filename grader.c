@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <stdint.h>
-#include <sys/mman.h>
+//#include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -233,12 +233,21 @@ void swap4(uint8_t * buf, size_t len, int order)
 
 void vis(struct romGrade *rg)
 {
+#ifndef _WIN32
 	char **g = (char *[]){
 		[GRADE_OK]		= "[\e[32mGOOD\e[0m]",
 		[GRADE_WARN]		= "[\e[33mWARN\e[0m]",
 		[GRADE_ERROR]		= "[\e[31mFAIL\e[0m]",
 		[GRADE_NOT_GRADED]	= "[\e[35m NA \e[0m]",
 	};
+#else
+	char **g = (char *[]){
+		[GRADE_OK]		= "[GOOD]",
+		[GRADE_WARN]		= "[WARN]",
+		[GRADE_ERROR]		= "[FAIL]",
+		[GRADE_NOT_GRADED]	= "[ NA ]",
+	};
+#endif
 	printf("Product code:\t\t%s\n",
 			rg->productCode);
 	printf("Entry point:\t\t%08x\n",
@@ -330,7 +339,7 @@ void grade_byte_order(struct romGrade *rg, uint8_t * rom, size_t len)
 void grade_pi_timings(struct romGrade *rg, uint8_t *rom, size_t len)
 {
 	// Check PI timings.
-	rg->piTimings = be32toh(((uint32_t *) rom)[0]);
+	rg->piTimings = ntohl(((uint32_t *) rom)[0]);
 	switch (rg->piTimings) {
 	case 0x80371240:
 		rg->piTimingsGrade = GRADE_OK;
@@ -372,7 +381,7 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 
 	// 80000130
 	do {
-		v0 = be32toh(rom32[t1 / 4]);
+		v0 = ntohl(rom32[t1 / 4]);
 		v1 = a3 + v0;
 		a1 = v1;
 		if (v1 < a3) {
@@ -398,7 +407,7 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		// 80000180
 		if (cics[rg->ipl3].type == 6105) {
 			uint32_t addr = 0x750 + (t0 & 0xff);
-			t4 += v0 ^ be32toh(rom32[addr / 4]);
+			t4 += v0 ^ ntohl(rom32[addr / 4]);
 		} else {
 			t4 += v0 ^ s0;
 		}
@@ -407,8 +416,8 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		t1 += 4;
 	} while (t0 != ra);
 
-	rg->crc1_inrom = be32toh(rom32[4]);
-	rg->crc2_inrom = be32toh(rom32[5]);
+	rg->crc1_inrom = ntohl(rom32[4]);
+	rg->crc2_inrom = ntohl(rom32[5]);
 
 	switch (cics[rg->ipl3].type) {
 	case 6101:
@@ -440,6 +449,13 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		rg->crcGrade = GRADE_ERROR;
 }
 
+void correct_crcs(struct romGrade *rg, uint8_t *rom)
+{
+	uint32_t *rom32 = (uint32_t *)rom;
+	rom32[4] = htonl(rg->crc1_calculated);
+	rom32[5] = htonl(rg->crc2_calculated);
+}
+
 void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 {
 	memcpy(rg->productCode, rom + 0x3b, 4);
@@ -462,5 +478,5 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 	grade_pi_timings(rg, rom, len);
 	grade_crcs(rg, rom, len);
 
-	rg->entrypoint = be32toh(((uint32_t *)rom)[2]) + cics[rg->ipl3].epOffset;
+	rg->entrypoint = ntohl(((uint32_t *)rom)[2]) + cics[rg->ipl3].epOffset;
 }

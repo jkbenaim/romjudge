@@ -7,6 +7,6 @@ all:	$(target)
 
 .PHONY: clean
 clean:
-	rm -f $(target) $(objects)
+	rm -f $(target) $(target).exe $(objects)
 
 $(target): $(objects)
