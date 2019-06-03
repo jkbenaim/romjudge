@@ -1,6 +1,12 @@
 # romjudge
 A utility to judge an N64 ROM for correctness.
 
+Usage:
+```
+Usage: romjudge [-f] file
+  -f will fix a broken ROM.
+```
+
 `romjudge` will indicate if an N64 ROM has:
 - the correct **byte order**,
 - typical **PI timings**,
