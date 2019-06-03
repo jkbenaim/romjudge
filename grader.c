@@ -239,6 +239,7 @@ void vis(struct romGrade *rg)
 		[GRADE_WARN]		= "[\e[33mWARN\e[0m]",
 		[GRADE_ERROR]		= "[\e[31mFAIL\e[0m]",
 		[GRADE_NOT_GRADED]	= "[\e[35m NA \e[0m]",
+		[GRADE_FIXED]		= "[\e[32mFIXD\e[0m]",
 	};
 #else
 	char **g = (char *[]){
@@ -246,6 +247,7 @@ void vis(struct romGrade *rg)
 		[GRADE_WARN]		= "[WARN]",
 		[GRADE_ERROR]		= "[FAIL]",
 		[GRADE_NOT_GRADED]	= "[ NA ]",
+		[GRADE_FIXED]		= "[FIXD]",
 	};
 #endif
 	printf("Product code:\t\t%s\n",
@@ -330,7 +332,10 @@ void grade_byte_order(struct romGrade *rg, uint8_t * rom, size_t len)
 		rg->byteOrderGrade = GRADE_OK;
 		break;
 	default:
-		rg->byteOrderGrade = GRADE_WARN;
+		if (rg->fix)
+			rg->byteOrderGrade = GRADE_FIXED;
+		else
+			rg->byteOrderGrade = GRADE_WARN;
 		break;
 	}
 	perm_iterator_destroy(&p);
@@ -442,26 +447,30 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		break;
 	}
 
+	rom32[4] = htonl(rg->crc1_calculated);
+	rom32[5] = htonl(rg->crc2_calculated);
+
 	if ((rg->crc1_inrom == rg->crc1_calculated)
 	 && (rg->crc2_inrom == rg->crc2_calculated))
 		rg->crcGrade = GRADE_OK;
 	else
-		rg->crcGrade = GRADE_ERROR;
+		if (rg->fix)
+			rg->crcGrade = GRADE_FIXED;
+		else
+			rg->crcGrade = GRADE_ERROR;
 }
 
+#if 0
 void correct_crcs(struct romGrade *rg, uint8_t *rom)
 {
 	uint32_t *rom32 = (uint32_t *)rom;
 	rom32[4] = htonl(rg->crc1_calculated);
 	rom32[5] = htonl(rg->crc2_calculated);
 }
+#endif
 
 void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 {
-	memcpy(rg->productCode, rom + 0x3b, 4);
-	rg->productCode[4] = rom[0x3f] + '0';
-	rg->productCode[5] = '\0';
-
 	grade_size(rg, rom, len);
 	if (rg->fileSizeGrade == GRADE_ERROR)
 		return;
@@ -474,6 +483,10 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 	if (rg->ipl3 != -1 && rg->byteOrder != 1234) {
 		swap4(rom, rg->fileSize, rg->byteOrder);
 	}
+
+	memcpy(rg->productCode, rom + 0x3b, 4);
+	rg->productCode[4] = rom[0x3f] + '0';
+	rg->productCode[5] = '\0';
 
 	grade_pi_timings(rg, rom, len);
 	grade_crcs(rg, rom, len);

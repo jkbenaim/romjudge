@@ -14,9 +14,11 @@ enum GRADE {
 	GRADE_OK,
 	GRADE_WARN,
 	GRADE_ERROR,
+	GRADE_FIXED
 };
 
 struct romGrade {
+	bool fix;
 	char productCode[6];
 	int byteOrder;
 	int byteOrderGrade;

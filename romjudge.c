@@ -6,29 +6,36 @@
 #include "grader.h"
 #include "mapfile.h"
 
-#define die(...) {				\
-	fprintf(stderr,"%s: ", argv[0]);	\
-	fprintf(stderr, __VA_ARGS__);		\
-	fprintf(stderr,"\n");			\
-	exit(1);				\
-}
-
 int main(int argc, char *argv[])
 {
+	struct romGrade rg = {0};
+	char *filename;
+
 	if (argc < 2) {
-		die("need a filename");
+		fprintf(stderr, "need a filename\n");
+		return EXIT_FAILURE;
 	}
 
-	char *filename = argv[1];
 
-	struct MappedFile_s m = mapfile(filename, false);
+	if (!strcmp(argv[1],"-f")) {
+		if (argc < 3) {
+			fprintf(stderr, "need a filename\n");
+			return EXIT_FAILURE;
+		}
+		rg.fix = true;
+		filename = argv[2];
+	} else {
+		rg.fix = false;
+		filename = argv[1];
+	}
+
+	struct MappedFile_s m = mapfile(filename, rg.fix);
 
 	if (m.data == NULL) {
 		fprintf(stderr, "couldn't open file: %s\n", filename);
 		return EXIT_FAILURE;
 	}
 
-	struct romGrade rg = {0};
 
 	grade(&rg, (uint8_t *)m.data, (size_t)m.size);
 	vis(&rg);
