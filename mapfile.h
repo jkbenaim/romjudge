@@ -4,6 +4,7 @@
 #ifdef __MINGW32__
 #include <windows.h>
 #endif
+#include <stdbool.h>
 
 struct MappedFile_s {
 	void *data;
@@ -11,19 +12,13 @@ struct MappedFile_s {
 #ifdef __MINGW32__
 	HANDLE _hFile;
 	HANDLE _hMapping;
+#else
+	int _fd;
 #endif
 };
 
-
-#ifdef __MINGW32__
-#include <stdbool.h>
-
-#define MAXFILESIZE (256*1024*1024)
 struct MappedFile_s mapfile(char *filename, bool writable);
 void unmapfile(struct MappedFile_s m);
-
-/* __MINGW32__ */
-#endif
 
 /* _MAPFILE_H_ */
 #endif

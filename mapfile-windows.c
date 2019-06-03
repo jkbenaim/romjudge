@@ -1,3 +1,4 @@
+#ifdef __MINGW32__
 #include <winsock2.h>
 #include <windows.h>
 #include <inttypes.h>
@@ -73,3 +74,5 @@ void unmapfile(struct MappedFile_s m)
 	CloseHandle(m._hFile);
 }
 
+/* __MINGW32__ */
+#endif
