@@ -252,7 +252,7 @@ void vis(struct romGrade *rg)
 #endif
 	printf("Product code:\t\t%s\n",
 			rg->productCode);
-	printf("Entry point:\t\t%08x\n",
+	printf("Entry point:\t\t%s %08x\n", g[rg->entrypointGrade],
 			rg->entrypoint);
 	printf("Byte order grade:\t%s %d\n", g[rg->byteOrderGrade],
 			rg->byteOrder);
@@ -335,7 +335,7 @@ void grade_byte_order(struct romGrade *rg, uint8_t * rom, size_t len)
 		if (rg->fix)
 			rg->byteOrderGrade = GRADE_FIXED;
 		else
-			rg->byteOrderGrade = GRADE_WARN;
+			rg->byteOrderGrade = GRADE_ERROR;
 		break;
 	}
 	perm_iterator_destroy(&p);
@@ -491,5 +491,17 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 	grade_pi_timings(rg, rom, len);
 	grade_crcs(rg, rom, len);
 
-	rg->entrypoint = ntohl(((uint32_t *)rom)[2]) + cics[rg->ipl3].epOffset;
+
+	rg->entrypoint = ntohl(((uint32_t *) rom)[2]);
+	if (rg->ipl3 > 0)
+		rg->entrypoint += cics[rg->ipl3].epOffset;
+
+	if (	((rg->entrypoint & 0xf) == 0) &&
+		(rg->entrypoint >= 0x80000000) &&
+		(rg->entrypoint <= 0x80700000) ) {
+			rg->entrypointGrade = GRADE_OK;
+	} else {
+		rg->entrypointGrade = GRADE_ERROR;
+	}
+
 }

@@ -34,6 +34,7 @@ struct romGrade {
 	int ipl3;		// CIC number, or 0 for unknown, or 2 for HW1 ipl3
 	int ipl3Grade;
 	uint32_t entrypoint;
+	int entrypointGrade;
 };
 
 extern void grade(struct romGrade *rg, uint8_t * rom, size_t len);
