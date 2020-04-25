@@ -396,7 +396,10 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		// 80000148
 		v1 = v0 & 0x1f;
 		t7 = t5 - v1;
-		t8 = v0 >> t7;
+		if (t7 == 32)
+			t8 = 0;
+		else
+			t8 = v0 >> t7;
 		t6 = v0 << v1;
 		a0 = t6 | t8;
 		a3 = a1;
