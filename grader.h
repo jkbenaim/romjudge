@@ -35,6 +35,7 @@ struct romGrade {
 	int ipl3Grade;
 	uint32_t entrypoint;
 	int entrypointGrade;
+	char name[21];
 };
 
 extern void grade(struct romGrade *rg, uint8_t * rom, size_t len);

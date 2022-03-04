@@ -259,6 +259,8 @@ void vis(struct romGrade *rg)
 		[GRADE_FIXED]		= "[FIXD]",
 	};
 #endif
+	printf("Game name:\t\t%s\n",
+			rg->name);
 	printf("Product code:\t\t%s\n",
 			rg->productCode);
 	printf("Entry point:\t\t%s %08x\n", g[rg->entrypointGrade],
@@ -481,6 +483,19 @@ void correct_crcs(struct romGrade *rg, uint8_t *rom)
 }
 #endif
 
+void grade_name(struct romGrade *rg, uint8_t * rom, size_t len)
+{
+	memcpy(&rg->name, rom + 32, 20);
+	rg->name[20] = '\0';
+	for (int i=0; i<20; i++) {
+		char *c = &rg->name[i];
+		if ((*c < ' ') || (*c > '~')) {
+			*c = '\0';
+			break;
+		}
+	}
+}
+
 void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 {
 	grade_size(rg, rom, len);
@@ -502,6 +517,7 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 
 	grade_pi_timings(rg, rom, len);
 	grade_crcs(rg, rom, len);
+	grade_name(rg, rom, len);
 
 
 	rg->entrypoint = ntohl(((uint32_t *) rom)[2]);
