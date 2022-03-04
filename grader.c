@@ -310,7 +310,10 @@ void grade_byte_order(struct romGrade *rg, uint8_t * rom, size_t len)
 	rg->ipl3 = 0;
 	rg->ipl3Grade = GRADE_ERROR;
 	struct perm_iterator p;
-	perm_iterator_init(&p, 4);
+	if (perm_iterator_init(&p, 4) != 0) {
+		fprintf(stderr, "perm_iterator_init\n");
+		exit(1);
+	}
 	do {
 		int i;
 		uint8_t a[0x1000], b[4];
