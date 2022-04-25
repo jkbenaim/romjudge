@@ -468,13 +468,17 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 	rom32[5] = htonl(rg->crc2_calculated);
 
 	if ((rg->crc1_inrom == rg->crc1_calculated)
-	 && (rg->crc2_inrom == rg->crc2_calculated))
+	 && (rg->crc2_inrom == rg->crc2_calculated)) {
 		rg->crcGrade = GRADE_OK;
-	else
-		if (rg->fix)
+	} else {
+		if (rg->fix) {
+			rg->crc1_inrom = rg->crc1_calculated;
+			rg->crc2_inrom = rg->crc2_calculated;
 			rg->crcGrade = GRADE_FIXED;
-		else
+		} else {
 			rg->crcGrade = GRADE_ERROR;
+		}
+	}
 }
 
 #if 0
