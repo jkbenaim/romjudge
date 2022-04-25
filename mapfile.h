@@ -5,6 +5,7 @@
 #include <windows.h>
 #endif
 #include <stdbool.h>
+#include <stdint.h>
 
 struct MappedFile_s {
 	void *data;
@@ -17,8 +18,9 @@ struct MappedFile_s {
 #endif
 };
 
-struct MappedFile_s mapfile(char *filename, bool writable);
-void unmapfile(struct MappedFile_s m);
+struct MappedFile_s MappedFile_Create(char *filename, size_t size);
+struct MappedFile_s MappedFile_Open(char *filename, bool writable);
+void MappedFile_Close(struct MappedFile_s m);
 
 /* _MAPFILE_H_ */
 #endif

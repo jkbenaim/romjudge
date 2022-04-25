@@ -21,14 +21,14 @@ void print_usage()
 int main(int argc, char *argv[])
 {
 	struct romGrade rg = {0};
-	char *filename;
+	char *filename = NULL;
+	struct MappedFile_s m = {0};
 
 	if (argc < 2) {
 		fprintf(stderr, "error: need a filename\n");
 		print_usage();
 		return EXIT_FAILURE;
 	}
-
 
 	if (!strcmp(argv[1],"-f")) {
 		if (argc < 3) {
@@ -43,16 +43,15 @@ int main(int argc, char *argv[])
 		filename = argv[1];
 	}
 
-	struct MappedFile_s m = mapfile(filename, rg.fix);
+	m = MappedFile_Open(filename, rg.fix);
 
 	if (m.data == NULL) {
 		fprintf(stderr, "error: couldn't open file: %s\n", filename);
 		return EXIT_FAILURE;
 	}
 
-
 	grade(&rg, (uint8_t *)m.data, (size_t)m.size);
 	vis(&rg);
-	unmapfile(m);
+	MappedFile_Close(m);
 	return EXIT_SUCCESS;
 }
