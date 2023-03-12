@@ -17,9 +17,22 @@ enum GRADE {
 	GRADE_FIXED
 };
 
+enum ipl_e {
+	IPL_NONE = 0,
+	IPL_6101,
+	IPL_6102,
+	IPL_6103,
+	IPL_6105,
+	IPL_6106,
+	IPL_7102,
+	IPL_8303,
+	IPL_HW1,
+	IPL_IQUE,
+};
+
 struct romGrade {
 	bool fix;
-	char productCode[6];
+	char productCode[9];	// "CZLE\x10"
 	int byteOrder;
 	int byteOrderGrade;
 	uint32_t piTimings;
@@ -38,7 +51,7 @@ struct romGrade {
 	char name[21];
 };
 
-extern void grade(struct romGrade *rg, uint8_t * rom, size_t len);
+extern void grade(struct romGrade *rg, uint8_t * rom, size_t len, enum ipl_e force_ipl, uint8_t force_region);
 extern void vis(struct romGrade *rg);
 
 #endif				// _GRADER_H_

@@ -1,6 +1,7 @@
 // jrra 2017
 
 #include <stdio.h>
+#include <err.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -11,6 +12,7 @@
 #include "endian.h"
 #include "sha1.h"
 #include "grader.h"
+#include "ipltxt.h"
 
 
 struct {
@@ -18,76 +20,84 @@ struct {
 	char *name;
 	int32_t epOffset;
 	uint32_t seed;
+	const uint8_t *txt;
 	uint8_t signature[20];
 } cics[] = {
-	{
+	[IPL_NONE] = {
 		.type = 1,
 		.name = "unrecognized",
 		.signature = {0},
 	},
-	{
+	[IPL_6101] = {
 		.type = 6101,
 		.name = "6101",
 		.epOffset = 0,
 		.seed = 0x3f * 0x5d588b65u + 1,
+		.txt = ipl_6101,
 		.signature = {0xea, 0xad, 0xcb, 0x8c, 0xca, 0x9c, 0x6b, 0xa1,
 			      0x44, 0x5f, 0x98, 0xf1, 0x72, 0x7b, 0xf4, 0xad,
 			      0xba, 0xbb, 0x88, 0xb2},
 	},
-	{
+	[IPL_6102] = {
 		.type = 6102,		// and 7101
 		.name = "6102 or 7101",
 		.epOffset = 0,
 		.seed = 0x3f * 0x5d588b65u + 1,
+		.txt = ipl_6102,
 		.signature = {0xb2, 0xaf, 0xae, 0x24, 0x6e, 0x1d, 0xab, 0x74,
 			      0x6b, 0xfb, 0x28, 0xcb, 0x34, 0x6e, 0x29, 0x11,
 			      0x96, 0x5e, 0xef, 0xa1},
 	},
-	{
+	[IPL_6103] = {
 		.type = 6103,		// and 7103
 		.name = "6103 or 7103",
 		.epOffset = -0x100000,
 		.seed = 0x78 * 0x6c078965u + 1,
+		.txt = ipl_6103,
 		.signature = {0x3f, 0x73, 0x47, 0xaa, 0x04, 0x26, 0xee, 0x97,
 			      0xd9, 0x67, 0x21, 0xb0, 0x9b, 0x91, 0x8d, 0x4c,
 			      0x9c, 0xdd, 0xb6, 0x9b},
 	},
-	{
+	[IPL_6105] = {
 		.type = 6105,		// and 7105
 		.name = "6105 or 7105",
 		.epOffset = 0,
 		.seed = 0x91 * 0x5d588b65u + 1,
+		.txt = ipl_6105,
 		.signature = {0x41, 0x59, 0x26, 0x90, 0x55, 0xe8, 0xa5, 0xbe,
 			      0x2e, 0x5c, 0x8e, 0x3e, 0x0f, 0x5e, 0x0d, 0x55,
 			      0x2f, 0x1e, 0x85, 0xad},
 	},
-	{
+	[IPL_6106] = {
 		.type = 6106,		// and 7106
 		.name = "6106 or 7106",
 		.epOffset = -0x200000,
 		.seed = 0x85 * 0x003d6e72u + 0x40,
+		.txt = ipl_6106,
 		.signature = {0x63, 0x46, 0x8e, 0x3a, 0xb5, 0x54, 0x25, 0x3d,
 			      0xa3, 0x4d, 0xe3, 0x59, 0x5c, 0xd0, 0x9b, 0x0e,
 			      0xce, 0xa1, 0xce, 0x00},
 	},
-	{
+	[IPL_7102] = {
 		.type = 7102,
 		.name = "7102",
 		.epOffset = 0,
 		.seed = 0x3f * 0x5d588b65u + 1,
+		.txt = ipl_7102,
 		.signature = {0x79, 0xfe, 0x35, 0x1c, 0x50, 0xcd, 0xf7, 0x7c,
 			      0x74, 0xe5, 0x03, 0xd7, 0x51, 0xa7, 0x15, 0x60,
 			      0x5f, 0x87, 0xb8, 0x09},
 	},
-	{
+	[IPL_8303] = {
 		.type = 8303,
 		.name = "8303",
 		.epOffset = 0,
+		.txt = ipl_8303,
 		.signature = {0x5e, 0xa7, 0xfc, 0x32, 0x74, 0xbe, 0x01, 0x12,
 			      0x1c, 0xfb, 0x20, 0xad, 0x6c, 0x9e, 0x60, 0x85,
 			      0xd6, 0x32, 0x79, 0xbe},
 	},
-	{
+	[IPL_HW1] = {
 		.type = 2,		/* SGI/hw1 bootcode? */
 		.name = "HW1",
 		.epOffset = 0,
@@ -95,7 +105,7 @@ struct {
 			      0x8e, 0x36, 0x70, 0xbd, 0xf2, 0x8d, 0x93, 0xb8,
 			      0x94, 0x61, 0x20, 0xc6},
 	},
-	{
+	[IPL_IQUE] = {
 		.type = 65,
 		.name = "iQue?",
 		.epOffset = 0,
@@ -219,7 +229,7 @@ int identify_ipl3(uint8_t * ipl3)
 		}
 		cicIndex++;
 	}
-	return -1;
+	return IPL_NONE;
 }
 
 void swap4(uint8_t * buf, size_t len, int order)
@@ -328,11 +338,11 @@ void grade_byte_order(struct romGrade *rg, uint8_t * rom, size_t len)
 			a[i + 3] = b[3];
 		}
 		rg->ipl3 = identify_ipl3(a + 0x40);
-		if (rg->ipl3 != -1)
+		if (rg->ipl3 != IPL_NONE)
 			break;
 	} while (perm_iterator_iterate(&p) >= 0);
 
-	if (rg->ipl3 != -1) {
+	if (rg->ipl3 != IPL_NONE) {
 		rg->ipl3Grade = GRADE_OK;
 		rg->byteOrder = p.order[0] * 1000
 			      + p.order[1] * 100
@@ -378,7 +388,7 @@ void grade_pi_timings(struct romGrade *rg, uint8_t *rom, size_t len)
 
 void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 {
-	if (rg->ipl3Grade != GRADE_OK)
+	if (rg->ipl3Grade == GRADE_ERROR)
 		return;
 
 	uint32_t *rom32 = (uint32_t *)rom;
@@ -503,7 +513,7 @@ void grade_name(struct romGrade *rg, uint8_t * rom, size_t len)
 	}
 }
 
-void grade(struct romGrade *rg, uint8_t * rom, size_t len)
+void grade(struct romGrade *rg, uint8_t * rom, size_t len, enum ipl_e force_ipl, uint8_t force_region)
 {
 	grade_size(rg, rom, len);
 	if (rg->fileSizeGrade == GRADE_ERROR)
@@ -514,13 +524,47 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len)
 		return;
 
 	// Byteswap the ROM if necessary.
-	if (rg->ipl3 != -1 && rg->byteOrder != 1234) {
+	if (rg->ipl3 != IPL_NONE && rg->byteOrder != 1234) {
 		swap4(rom, rg->fileSize, rg->byteOrder);
 	}
 
+	// Force IPL3?
+	if (force_ipl != IPL_NONE) {
+		uint32_t ep = ntohl(((uint32_t *)rom)[2]);
+
+		if (cics[force_ipl].txt == NULL)
+			errx(1, "can't force IPL '%s'", cics[force_ipl].name);
+		memcpy(rom + 0x40, cics[force_ipl].txt, 0xfc0);
+		
+		if (rg->ipl3 != IPL_NONE) {
+			ep += cics[rg->ipl3].epOffset;
+		}
+
+		ep -= cics[force_ipl].epOffset;
+		((uint32_t *)rom)[2] = htonl(ep);
+		rg->ipl3 = force_ipl;
+		rg->ipl3Grade = GRADE_FIXED;
+	}
+
+	// Force region?
+	if (force_region != '\0') {
+		((uint8_t *)rom)[0x3e] = force_region;
+	}
+
 	memcpy(rg->productCode, rom + 0x3b, 4);
-	rg->productCode[4] = rom[0x3f] + '0';
-	rg->productCode[5] = '\0';
+	switch (rom[0x3f]) {
+	case 0 ... 9:
+		rg->productCode[4] = rom[0x3f] + '0';
+		rg->productCode[5] = '\0';
+		break;
+	default:
+		rg->productCode[4] = '\\';
+		rg->productCode[5] = 'x';
+		rg->productCode[6] = "0123456789abcdef"[rom[0x3f] >> 4];
+		rg->productCode[7] = "0123456789abcdef"[rom[0x3f] & 0x0f];
+		rg->productCode[8] = '\0';
+		break;
+	}
 
 	grade_pi_timings(rg, rom, len);
 	grade_crcs(rg, rom, len);

@@ -165,6 +165,7 @@ void MappedFile_Close(struct MappedFile_s m)
 
 /* __MINGW32__ */
 #else
+#define _XOPEN_SOURCE 500
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -206,6 +207,7 @@ struct MappedFile_s MappedFile_Create(char *filename, size_t size)
 
 out_close:
 	close(m._fd);
+	m._fd = -1;
 out_error:
 	m.size = 0;
 	m.data = NULL;
@@ -245,6 +247,7 @@ struct MappedFile_s MappedFile_Open(char *filename, bool writable)
 
 out_close:
 	close(m._fd);
+	m._fd = -1;
 out_error:
 	m.size = 0;
 	m.data = NULL;

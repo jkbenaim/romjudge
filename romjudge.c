@@ -4,54 +4,99 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
+#include <unistd.h>
+#include <stdnoreturn.h>
+#include <iso646.h>
+#include <err.h>
 #include "grader.h"
 #include "mapfile.h"
 
-void print_usage()
+extern char *__progname;
+
+static void noreturn usage(void)
 {
-	printf(
-		"Usage: romjudge [-f] file\n"
-		"  -f will fix a broken ROM.\n"
+	(void)fprintf(stderr,
+		"usage: %s [-i ipl] -f file\n"
+		"  -i will force an IPL and rewrite checksums.\n"
 		"\n"
 		"Report bugs to:\n"
-		"https://github.com/jkbenaim/romjudge\n"
+		"https://github.com/jkbenaim/romjudge\n",
+		__progname
 	);
+	exit(EXIT_FAILURE);
+}
+
+enum ipl_e IPLdToEnum(unsigned u)
+{
+	switch (u) {
+	case 6101:
+		return IPL_6101;
+		break;
+	case 6102:
+	case 7101:
+		return IPL_6102;
+		break;
+	case 6103:
+	case 7103:
+		return IPL_6103;
+		break;
+	case 6105:
+	case 7105:
+		return IPL_6105;
+		break;
+	case 6106:
+	case 7106:
+		return IPL_6106;
+		break;
+	case 8303:
+		return IPL_8303;
+		break;
+	default:
+		return IPL_NONE;
+		break;
+	};
 }
 
 int main(int argc, char *argv[])
 {
-	struct romGrade rg = {0};
+	int rc;
 	char *filename = NULL;
 	struct MappedFile_s m = {0};
+	struct romGrade rg = {0};
+	bool fix = false;
+	enum ipl_e force_ipl = IPL_NONE;
+	unsigned char force_region = '\0';
 
-	if (argc < 2) {
-		fprintf(stderr, "error: need a filename\n");
-		print_usage();
-		return EXIT_FAILURE;
-	}
-
-	if (!strcmp(argv[1],"-f")) {
-		if (argc < 3) {
-			fprintf(stderr, "error: need a filename\n");
-			print_usage();
-			return EXIT_FAILURE;
+	while ((rc = getopt(argc, argv, "f:i:r:")) != -1)
+		switch (rc) {
+		case 'f':
+			filename = optarg;
+			break;
+		case 'i':
+			force_ipl = IPLdToEnum(strtoul(optarg, NULL, 10));
+			break;
+		case 'r':
+			force_region = optarg[0];
+			break;
+		default:
+			usage();
 		}
-		rg.fix = true;
-		filename = argv[2];
-	} else {
-		rg.fix = false;
-		filename = argv[1];
-	}
+	argc -= optind;
+	argv += optind;
+	if (not filename)
+		usage();
+	if (*argv != NULL)
+		usage();
 
-	m = MappedFile_Open(filename, rg.fix);
+	fix = (force_ipl != IPL_NONE);
 
-	if (m.data == NULL) {
-		fprintf(stderr, "error: couldn't open file: %s\n", filename);
-		return EXIT_FAILURE;
-	}
+	m = MappedFile_Open(filename, fix);
+	if (!m.data) err(1, "couldn't open '%s' for reading", filename);
 
-	grade(&rg, (uint8_t *)m.data, (size_t)m.size);
+	rg.fix = fix;
+	grade(&rg, (uint8_t *)m.data, (size_t)m.size, force_ipl, force_region);
 	vis(&rg);
 	MappedFile_Close(m);
+	m.data = NULL;
 	return EXIT_SUCCESS;
 }

@@ -14,4 +14,4 @@ Usage: romjudge [-f] file
 - the correct **CRCs**, and
 - a recognized **IPL3/bootcode**.
 
-Written in C99. X11 license. `sha1.c` and `sha1.h` are public domain.
+Written in C11. X11 license. `sha1.c` and `sha1.h` are public domain.
