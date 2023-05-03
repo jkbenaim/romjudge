@@ -1,4 +1,4 @@
-// jrra 2017
+/* jrra 2023 */
 
 #include <stdio.h>
 #include <err.h>
@@ -529,7 +529,7 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len, enum ipl_e force_ipl,
 	}
 
 	// Force IPL3?
-	if (force_ipl != IPL_NONE) {
+	if ((force_ipl != IPL_NONE) && (force_ipl != rg->ipl3)) {
 		uint32_t ep = ntohl(((uint32_t *)rom)[2]);
 
 		if (cics[force_ipl].txt == NULL)

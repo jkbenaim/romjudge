@@ -1,7 +1,5 @@
-// jrra 2017
-
-#ifndef _GRADER_H_
-#define _GRADER_H_
+/* jrra 2023 */
+#pragma once
 
 #include <inttypes.h>
 #include <stdbool.h>
@@ -54,4 +52,3 @@ struct romGrade {
 extern void grade(struct romGrade *rg, uint8_t * rom, size_t len, enum ipl_e force_ipl, uint8_t force_region);
 extern void vis(struct romGrade *rg);
 
-#endif				// _GRADER_H_

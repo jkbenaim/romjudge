@@ -1,4 +1,4 @@
-/* jrra 2019 */
+/* jrra 2023 */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,8 +16,9 @@ extern char *__progname;
 static void noreturn usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: %s [-i ipl] -f file\n"
-		"  -i will force an IPL and rewrite checksums.\n"
+		"usage: %s [-c ipl] [-r region] -f file\n"
+		"  -c will force an IPL and rewrite checksums.\n"
+		"  -r will overwrite the region letter.\n"
 		"\n"
 		"Report bugs to:\n"
 		"https://github.com/jkbenaim/romjudge\n",
@@ -67,15 +68,21 @@ int main(int argc, char *argv[])
 	enum ipl_e force_ipl = IPL_NONE;
 	unsigned char force_region = '\0';
 
-	while ((rc = getopt(argc, argv, "f:i:r:")) != -1)
+	while ((rc = getopt(argc, argv, "f:c:r:")) != -1)
 		switch (rc) {
 		case 'f':
+			if (filename)
+				usage();
 			filename = optarg;
 			break;
-		case 'i':
+		case 'c':
+			if (force_ipl != IPL_NONE)
+				usage();
 			force_ipl = IPLdToEnum(strtoul(optarg, NULL, 10));
 			break;
 		case 'r':
+			if (force_region != '\0')
+				usage();
 			force_region = optarg[0];
 			break;
 		default:
@@ -88,7 +95,7 @@ int main(int argc, char *argv[])
 	if (*argv != NULL)
 		usage();
 
-	fix = (force_ipl != IPL_NONE);
+	fix = (force_ipl != IPL_NONE) or force_region;
 
 	m = MappedFile_Open(filename, fix);
 	if (!m.data) err(1, "couldn't open '%s' for reading", filename);
