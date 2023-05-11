@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "sha1.h"
 
 extern char *gradeErrors[];
@@ -30,6 +31,7 @@ enum ipl_e {
 
 struct romGrade {
 	bool fix;
+	bool weirdIqueHeader;
 	char productCode[9];	// "CZLE\x10"
 	int byteOrder;
 	int byteOrderGrade;
@@ -42,7 +44,7 @@ struct romGrade {
 	uint32_t crc1_calculated;
 	uint32_t crc2_calculated;
 	int crcGrade;
-	int ipl3;		// CIC number, or 0 for unknown, or 2 for HW1 ipl3
+	enum ipl_e ipl3;
 	int ipl3Grade;
 	uint32_t entrypoint;
 	int entrypointGrade;

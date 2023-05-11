@@ -13,7 +13,7 @@
 
 extern char *__progname;
 
-static void noreturn usage(void)
+noreturn static void usage(void)
 {
 	(void)fprintf(stderr,
 		"usage: %s [-c ipl] [-r region] -f file\n"

@@ -14,22 +14,19 @@
 #include "grader.h"
 #include "ipltxt.h"
 
-
 struct {
-	int type;
 	char *name;
 	int32_t epOffset;
 	uint32_t seed;
 	const uint8_t *txt;
 	uint8_t signature[20];
+	bool end;
 } cics[] = {
 	[IPL_NONE] = {
-		.type = 1,
 		.name = "unrecognized",
 		.signature = {0},
 	},
 	[IPL_6101] = {
-		.type = 6101,
 		.name = "6101",
 		.epOffset = 0,
 		.seed = 0x3f * 0x5d588b65u + 1,
@@ -39,7 +36,6 @@ struct {
 			      0xba, 0xbb, 0x88, 0xb2},
 	},
 	[IPL_6102] = {
-		.type = 6102,		// and 7101
 		.name = "6102 or 7101",
 		.epOffset = 0,
 		.seed = 0x3f * 0x5d588b65u + 1,
@@ -49,7 +45,6 @@ struct {
 			      0x96, 0x5e, 0xef, 0xa1},
 	},
 	[IPL_6103] = {
-		.type = 6103,		// and 7103
 		.name = "6103 or 7103",
 		.epOffset = -0x100000,
 		.seed = 0x78 * 0x6c078965u + 1,
@@ -59,7 +54,6 @@ struct {
 			      0x9c, 0xdd, 0xb6, 0x9b},
 	},
 	[IPL_6105] = {
-		.type = 6105,		// and 7105
 		.name = "6105 or 7105",
 		.epOffset = 0,
 		.seed = 0x91 * 0x5d588b65u + 1,
@@ -69,7 +63,6 @@ struct {
 			      0x2f, 0x1e, 0x85, 0xad},
 	},
 	[IPL_6106] = {
-		.type = 6106,		// and 7106
 		.name = "6106 or 7106",
 		.epOffset = -0x200000,
 		.seed = 0x85 * 0x003d6e72u + 0x40,
@@ -79,7 +72,6 @@ struct {
 			      0xce, 0xa1, 0xce, 0x00},
 	},
 	[IPL_7102] = {
-		.type = 7102,
 		.name = "7102",
 		.epOffset = 0,
 		.seed = 0x3f * 0x5d588b65u + 1,
@@ -89,7 +81,6 @@ struct {
 			      0x5f, 0x87, 0xb8, 0x09},
 	},
 	[IPL_8303] = {
-		.type = 8303,
 		.name = "8303",
 		.epOffset = 0,
 		.txt = ipl_8303,
@@ -98,7 +89,6 @@ struct {
 			      0xd6, 0x32, 0x79, 0xbe},
 	},
 	[IPL_HW1] = {
-		.type = 2,		/* SGI/hw1 bootcode? */
 		.name = "HW1",
 		.epOffset = 0,
 		.signature = {0xd6, 0x8c, 0x83, 0xda, 0xb8, 0xc2, 0xc2, 0xb0,
@@ -106,8 +96,7 @@ struct {
 			      0x94, 0x61, 0x20, 0xc6},
 	},
 	[IPL_IQUE] = {
-		.type = 65,
-		.name = "iQue?",
+		.name = "iQue",
 		.epOffset = 0,
 		.signature = {0x17, 0x6d, 0x20, 0xcd, 0x8b, 0x0f, 0x7e, 0x24,
 			      0x5b, 0x3d, 0x4e, 0x02, 0x7e, 0x78, 0x95, 0x52,
@@ -115,9 +104,7 @@ struct {
 
 	},
 	{
-		/* The list is terminated by a fake CIC with type 0. */
-		.type = 0,
-		.signature = {0},
+		.end = true,
 	},
 };
 
@@ -221,7 +208,7 @@ int identify_ipl3(uint8_t * ipl3)
 	SHA1_Update(&sha1ctx, ipl3, 0xFC0);
 	SHA1_Final(&sha1ctx, sha1sum);
 	int cicIndex = 0;
-	while (cics[cicIndex].type != 0) {
+	while (!cics[cicIndex].end) {
 		if (!memcmp(cics[cicIndex].signature, sha1sum,
 			SHA1_DIGEST_SIZE)) {
 			return cicIndex;
@@ -270,9 +257,9 @@ void vis(struct romGrade *rg)
 	};
 #endif
 	printf("Game name:\t\t%s\n",
-			rg->name);
+			strlen(rg->name)?rg->name:"(empty)");
 	printf("Product code:\t\t%s\n",
-			rg->productCode);
+			strlen(rg->productCode)?rg->productCode:"(empty)");
 	printf("Entry point:\t\t%s %08x\n", g[rg->entrypointGrade],
 			rg->entrypoint);
 	printf("Byte order grade:\t%s %d\n", g[rg->byteOrderGrade],
@@ -285,10 +272,15 @@ void vis(struct romGrade *rg)
 			rg->crc2_inrom);
 	printf("IPL3 grade:\t\t%s %s\n", g[rg->ipl3Grade],
 		rg->ipl3Grade != GRADE_ERROR ? cics[rg->ipl3].name : "");
+	if (rg->weirdIqueHeader) {
+		printf("WARNING: weird 32-byte iQue header present.\n");
+	}
 }
 
 void grade_size(struct romGrade *rg, uint8_t * rom, size_t len)
 {
+	(void)rom;
+
 	rg->fileSize = len;
 	if (rg->fileSize < 0x101000) {
 		rg->fileSizeGrade = GRADE_ERROR;
@@ -317,8 +309,10 @@ void grade_size(struct romGrade *rg, uint8_t * rom, size_t len)
 void grade_byte_order(struct romGrade *rg, uint8_t * rom, size_t len)
 {
 	// Swap IPL3 around until it matches.
-	rg->ipl3 = 0;
+	rg->ipl3 = IPL_NONE;
 	rg->ipl3Grade = GRADE_ERROR;
+	if (len < 0x1000) return;
+
 	struct perm_iterator p;
 	if (perm_iterator_init(&p, 4) != 0) {
 		fprintf(stderr, "perm_iterator_init\n");
@@ -368,13 +362,16 @@ void grade_byte_order(struct romGrade *rg, uint8_t * rom, size_t len)
 void grade_pi_timings(struct romGrade *rg, uint8_t *rom, size_t len)
 {
 	// Check PI timings.
+	
+	if (len < 64) return;
+
 	rg->piTimings = ntohl(((uint32_t *) rom)[0]);
 	switch (rg->piTimings) {
 	case 0x80371240:
 		rg->piTimingsGrade = GRADE_OK;
 		break;
 	case 0x80270740:
-		if (cics[rg->ipl3].type == 8303) {
+		if (rg->ipl3 == IPL_8303) {
 			rg->piTimingsGrade = GRADE_OK;
 		} else {
 			rg->piTimingsGrade = GRADE_WARN;
@@ -388,10 +385,17 @@ void grade_pi_timings(struct romGrade *rg, uint8_t *rom, size_t len)
 
 void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 {
+	uint32_t *rom32 = (uint32_t *)rom;
+
+	if (len < 24) return;
+	rg->crc1_inrom = ntohl(rom32[4]);
+	rg->crc2_inrom = ntohl(rom32[5]);
+
 	if (rg->ipl3Grade == GRADE_ERROR)
 		return;
+	
+	if (len < 0x101000) return;
 
-	uint32_t *rom32 = (uint32_t *)rom;
 	uint32_t v1, t0, v0, a3, t2, t3, s0, a2, t4, t7, t5, t8, t6, a0, a1,
 		t9, ra, t1;
 	a0 = /* start of 1mb seg */ 0x1000;
@@ -437,7 +441,7 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		}
 
 		// 80000180
-		if (cics[rg->ipl3].type == 6105) {
+		if (rg->ipl3 == IPL_6105) {
 			uint32_t addr = 0x750 + (t0 & 0xff);
 			t4 += v0 ^ ntohl(rom32[addr / 4]);
 		} else {
@@ -448,26 +452,23 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 		t1 += 4;
 	} while (t0 != ra);
 
-	rg->crc1_inrom = ntohl(rom32[4]);
-	rg->crc2_inrom = ntohl(rom32[5]);
-
-	switch (cics[rg->ipl3].type) {
-	case 6101:
-	case 6102:
-	case 7102:
-	case 6105:
+	switch (rg->ipl3) {
+	case IPL_6101:
+	case IPL_6102:
+	case IPL_7102:
+	case IPL_6105:
 		rg->crc1_calculated = (a3 ^ t2) ^ t3;
 		rg->crc2_calculated = (s0 ^ a2) ^ t4;
 		break;
-	case 6103:
+	case IPL_6103:
 		rg->crc1_calculated = (a3 ^ t2) + t3;
 		rg->crc2_calculated = (s0 ^ a2) + t4;
 		break;
-	case 6106:
+	case IPL_6106:
 		rg->crc1_calculated = (a3 * t2) + t3;
 		rg->crc2_calculated = (s0 * a2) + t4;
 		break;
-	case 8303:
+	case IPL_8303:
 	default:
 		rg->crc1_calculated = 0;
 		rg->crc2_calculated = 0;
@@ -491,17 +492,10 @@ void grade_crcs(struct romGrade *rg, uint8_t *rom, size_t len)
 	}
 }
 
-#if 0
-void correct_crcs(struct romGrade *rg, uint8_t *rom)
-{
-	uint32_t *rom32 = (uint32_t *)rom;
-	rom32[4] = htonl(rg->crc1_calculated);
-	rom32[5] = htonl(rg->crc2_calculated);
-}
-#endif
-
 void grade_name(struct romGrade *rg, uint8_t * rom, size_t len)
 {
+	if (len < 64) return;
+
 	memcpy(&rg->name, rom + 32, 20);
 	rg->name[20] = '\0';
 	for (int i=0; i<20; i++) {
@@ -515,18 +509,40 @@ void grade_name(struct romGrade *rg, uint8_t * rom, size_t len)
 
 void grade(struct romGrade *rg, uint8_t * rom, size_t len, enum ipl_e force_ipl, uint8_t force_region)
 {
-	grade_size(rg, rom, len);
-	if (rg->fileSizeGrade == GRADE_ERROR)
-		return;
+	if (len < 64) return;
 
+	// Detect presence of optional iQue header and skip it if present.
+	if (0x80371240 == ntohl(((uint32_t *) rom)[8])) {
+		rom += 32;
+		len -= 32;
+		rg->weirdIqueHeader = true;
+	}
+	
+	// Grade rom size.
+	grade_size(rg, rom, len);
+
+	// Grade byte order and IPL3.
+	if (len < 0x1000) return;
 	grade_byte_order(rg, rom, len);	// also grades ipl3
-	if (rg->byteOrderGrade == GRADE_ERROR)
-		return;
 
 	// Byteswap the ROM if necessary.
 	if (rg->ipl3 != IPL_NONE && rg->byteOrder != 1234) {
 		swap4(rom, rg->fileSize, rg->byteOrder);
 	}
+
+	// Grade entrypoint.
+	rg->entrypoint = ntohl(((uint32_t *) rom)[2]);
+	if (rg->ipl3 > 0)
+		rg->entrypoint += cics[rg->ipl3].epOffset;
+
+	if (	((rg->entrypoint & 0xf) == 0) &&
+		(rg->entrypoint >= 0x80000000) &&
+		(rg->entrypoint <= 0x80700000) ) {
+			rg->entrypointGrade = GRADE_OK;
+	} else {
+		rg->entrypointGrade = GRADE_ERROR;
+	}
+
 
 	// Force IPL3?
 	if ((force_ipl != IPL_NONE) && (force_ipl != rg->ipl3)) {
@@ -546,11 +562,13 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len, enum ipl_e force_ipl,
 		rg->ipl3Grade = GRADE_FIXED;
 	}
 
+
 	// Force region?
 	if (force_region != '\0') {
 		((uint8_t *)rom)[0x3e] = force_region;
 	}
 
+	// Copy product code into rg structure.
 	memcpy(rg->productCode, rom + 0x3b, 4);
 	switch (rom[0x3f]) {
 	case 0 ... 9:
@@ -566,21 +584,8 @@ void grade(struct romGrade *rg, uint8_t * rom, size_t len, enum ipl_e force_ipl,
 		break;
 	}
 
+	// More gradings.
 	grade_pi_timings(rg, rom, len);
-	grade_crcs(rg, rom, len);
 	grade_name(rg, rom, len);
-
-
-	rg->entrypoint = ntohl(((uint32_t *) rom)[2]);
-	if (rg->ipl3 > 0)
-		rg->entrypoint += cics[rg->ipl3].epOffset;
-
-	if (	((rg->entrypoint & 0xf) == 0) &&
-		(rg->entrypoint >= 0x80000000) &&
-		(rg->entrypoint <= 0x80700000) ) {
-			rg->entrypointGrade = GRADE_OK;
-	} else {
-		rg->entrypointGrade = GRADE_ERROR;
-	}
-
+	grade_crcs(rg, rom, len);
 }
