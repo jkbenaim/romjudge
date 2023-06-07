@@ -1,7 +1,6 @@
 /* jrra 2023 */
 
 #include <stdio.h>
-#include <err.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -10,9 +9,10 @@
 #include <unistd.h>
 #include <string.h>
 #include "endian.h"
-#include "sha1.h"
+#include "err.h"
 #include "grader.h"
 #include "ipltxt.h"
+#include "sha1.h"
 
 struct {
 	char *name;

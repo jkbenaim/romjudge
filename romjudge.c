@@ -1,5 +1,6 @@
 /* jrra 2023 */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -7,11 +8,10 @@
 #include <unistd.h>
 #include <stdnoreturn.h>
 #include <iso646.h>
-#include <err.h>
+#include "err.h"
 #include "grader.h"
 #include "mapfile.h"
-
-extern char *__progname;
+#include "progname.h"
 
 noreturn static void usage(void)
 {
@@ -67,6 +67,8 @@ int main(int argc, char *argv[])
 	bool fix = false;
 	enum ipl_e force_ipl = IPL_NONE;
 	unsigned char force_region = '\0';
+
+	progname_init(argc, argv);
 
 	while ((rc = getopt(argc, argv, "f:c:r:")) != -1)
 		switch (rc) {

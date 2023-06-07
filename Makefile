@@ -1,6 +1,6 @@
 target  ?= romjudge
 objects := $(patsubst %.c,%.o,$(wildcard *.c))
-CFLAGS  += -Wall -Og -ggdb -std=gnu11
+CFLAGS  += -Wall -Og -ggdb -std=gnu99
 
 .PHONY: all
 all:	$(target)
