@@ -1,5 +1,7 @@
 # romjudge
-A utility to judge an N64 ROM for correctness.
+A utility to judge an N64 ROM for correctness, for Windows and Linux.
+
+Windows users should download the pre-built EXE: [romjudge.exe](https://github.com/jkbenaim/romjudge/raw/master/romjudge.exe)
 
 Usage:
 ```
