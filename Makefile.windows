@@ -1,7 +1,7 @@
 target  ?= romjudge
 objects := $(patsubst %.c,%.o,$(wildcard *.c))
 CFLAGS  += -Wall -Og -ggdb -std=c99
-CC      := i686-w64-mingw32-gcc
+CC      := i686-w64-mingw64-gcc
 
 .PHONY: all
 all:	$(target)
