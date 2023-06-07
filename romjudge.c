@@ -16,7 +16,7 @@
 noreturn static void usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: %s [-c ipl] [-r region] -f file\n"
+		"usage: %s [-c ipl] [-r region] -f romfile\n"
 		"  -c will force an IPL and rewrite checksums.\n"
 		"  -r will overwrite the region letter.\n"
 		"\n"

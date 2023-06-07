@@ -3,8 +3,9 @@ A utility to judge an N64 ROM for correctness.
 
 Usage:
 ```
-Usage: romjudge [-f] file
-  -f will fix a broken ROM.
+usage: romjudge [-c ipl] [-r region] -f romfile
+  -c will force an IPL and rewrite checksums.
+  -r will overwrite the region letter.
 ```
 
 `romjudge` will indicate if an N64 ROM has:
@@ -14,4 +15,4 @@ Usage: romjudge [-f] file
 - the correct **CRCs**, and
 - a recognized **IPL3/bootcode**.
 
-Written in C11. X11 license. `sha1.c` and `sha1.h` are public domain.
+Written in C. X11 license. `sha1.c` and `sha1.h` are public domain.
